@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#181313">
+  <title>本子工坊 2 · 画风选择</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#171313;color:#f9f2ed;font-family:"Microsoft YaHei","PingFang SC",sans-serif}button,input{font:inherit}
+    body{background:radial-gradient(circle at 15% 0,#45251f 0,transparent 34rem),linear-gradient(160deg,#171313,#211817 60%,#161212)}
+    .app{width:min(1180px,100%);margin:auto;padding:18px clamp(12px,3vw,32px) 90px}.top{position:sticky;top:0;z-index:9;margin:0 -8px;padding:14px 8px 12px;background:linear-gradient(#1b1515f5,#1b1515de 80%,transparent);backdrop-filter:blur(14px)}
+    .titleline{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.titleline h1{font-size:clamp(22px,4vw,34px);margin:0}.sub{color:#cdbbb4;font-size:13px}.actions{margin-left:auto;display:flex;gap:8px}.btn{border:1px solid #74544b;background:#2b211f;color:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}.btn.primary{background:#c34e3d;border-color:#e77a67;font-weight:800}.btn:active{transform:translateY(1px)}
+    .chosen{margin-top:12px;padding:10px 12px;border:1px solid #604840;border-radius:14px;background:#241b19;display:flex;gap:8px;align-items:center;min-height:48px}.chosen-label{white-space:nowrap;color:#efb7a7;font-weight:800}.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid #74544b;background:#362622;color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer}.empty{color:#9e8a83}
+    .tools{display:grid;grid-template-columns:1fr auto;gap:10px;margin:14px 0 10px}.search{width:100%;border:1px solid #664d46;border-radius:13px;padding:12px 14px;background:#251d1b;color:#fff;outline:none}.search:focus{border-color:#e27561;box-shadow:0 0 0 3px #e2756122}.count{align-self:center;color:#bca9a2;font-size:13px}
+    .tabs{display:flex;gap:8px;overflow:auto;padding:2px 0 13px}.tab{white-space:nowrap;border:1px solid #5e4740;background:#241c1a;color:#ccb9b1;border-radius:999px;padding:8px 13px;cursor:pointer}.tab.active{background:#8e352a;color:#fff;border-color:#e06d5b}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.card{position:relative;border:2px solid transparent;background:#271e1c;border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 10px 28px #0005;transition:.18s transform,.18s border-color}.card:hover{transform:translateY(-3px);border-color:#80564b}.card.active{border-color:#ff8b72;box-shadow:0 0 0 3px #ff78542a,0 12px 30px #0007}.card img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;background:#302624}.card-info{padding:10px 12px 12px}.card b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card small{color:#aa958e}.fav{position:absolute;right:9px;top:9px;width:36px;height:36px;border-radius:50%;border:1px solid #ffffff55;background:#171313c9;color:#d4c3bc;font-size:20px;cursor:pointer}.fav.active{color:#ffd36a;background:#5e3b20e8}.check{position:absolute;left:9px;top:9px;background:#c64d3d;color:white;border-radius:999px;padding:5px 9px;font-weight:900;opacity:0}.card.active .check{opacity:1}.nothing{grid-column:1/-1;text-align:center;padding:70px 10px;color:#a9938b}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);padding:10px 15px;border:1px solid #916358;background:#251b19f2;border-radius:12px;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:800px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.actions{width:100%;margin-left:0}.actions .btn{flex:1}.chosen{align-items:flex-start;overflow:auto}.tools{grid-template-columns:1fr}.count{display:none}}
+    @media(max-width:520px){.app{padding-left:9px;padding-right:9px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.card{border-radius:12px}.card-info{padding:8px}.top{padding-top:max(10px,env(safe-area-inset-top))}.sub{width:100%}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="titleline"><h1>选择画师风格</h1><span class="sub">可多选 · 点击星标收藏 · 选择会保存在当前浏览器</span><div class="actions"><button class="btn" id="clear">清空</button><button class="btn primary" id="copy">复制已选画师串</button></div></div>
+      <div class="chosen"><span class="chosen-label">已选 <b id="selectedCount">0</b></span><div class="chips" id="chips"><span class="empty">还没有选择画风</span></div></div>
+      <div class="tools"><input class="search" id="search" placeholder="搜索画师名，例如 Hisasi"><span class="count" id="count"></span></div>
+      <nav class="tabs" id="tabs"></nav>
+    </header>
+    <section class="grid" id="grid"></section>
+  </main>
+  <div class="toast" id="toast"></div>
+  <script src="artists.js"></script>
+  <script>
+    const A=window.ARTISTS||[],K='hbook-style-gallery-v1';
+    let saved={selected:[],favorites:[],recent:[]};try{saved=Object.assign(saved,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
+    let category='all',query='';const $=s=>document.querySelector(s),unique=a=>[...new Set(a)].filter(i=>A[i]);
+    function persist(){saved.selected=unique(saved.selected);saved.favorites=unique(saved.favorites);saved.recent=unique(saved.recent).slice(0,18);localStorage.setItem(K,JSON.stringify(saved))}
+    function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+    function toast(s){const x=$('#toast');x.textContent=s;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),1800)}
+    function toggle(i){if(saved.selected.includes(i))saved.selected=saved.selected.filter(x=>x!==i);else{saved.selected.push(i);saved.recent=[i,...saved.recent.filter(x=>x!==i)]}persist();render()}
+    function favorite(i){saved.favorites=saved.favorites.includes(i)?saved.favorites.filter(x=>x!==i):[i,...saved.favorites];persist();render()}
+    function render(){
+      const tabs=[['all','全部',A.length],['recent','最近使用',saved.recent.length],['favorites','收藏',saved.favorites.length]];
+      $('#tabs').innerHTML=tabs.map(([id,n,c])=>`<button class="tab ${category===id?'active':''}" data-cat="${id}">${n} · ${c}</button>`).join('');
+      document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{category=x.dataset.cat;render()});
+      let ids=category==='recent'?saved.recent:category==='favorites'?saved.favorites:A.map((_,i)=>i);ids=ids.filter(i=>A[i].tag.toLowerCase().includes(query));
+      $('#count').textContent=`显示 ${ids.length} · 已选 ${saved.selected.length}`;$('#selectedCount').textContent=saved.selected.length;
+      $('#chips').innerHTML=saved.selected.length?saved.selected.map(i=>`<button class="chip" data-remove="${i}" title="点击取消">${esc(A[i].tag)} ×</button>`).join(''):'<span class="empty">还没有选择画风</span>';
+      document.querySelectorAll('[data-remove]').forEach(x=>x.onclick=()=>toggle(+x.dataset.remove));
+      $('#grid').innerHTML=ids.length?ids.map(i=>`<article class="card ${saved.selected.includes(i)?'active':''}" data-i="${i}" tabindex="0"><span class="check">✓ 已选</span><button class="fav ${saved.favorites.includes(i)?'active':''}" data-fav="${i}" title="收藏">★</button><img loading="lazy" src="${A[i].file}" alt="${esc(A[i].tag)} 画风示例"><div class="card-info"><b>${esc(A[i].tag.replace(/^@/,''))}</b><small>STYLE ${String(i+1).padStart(3,'0')}</small></div></article>`).join(''):'<div class="nothing">这里还没有内容</div>';
+      document.querySelectorAll('.card').forEach(x=>{x.onclick=e=>{if(!e.target.closest('.fav'))toggle(+x.dataset.i)};x.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle(+x.dataset.i)}}});
+      document.querySelectorAll('[data-fav]').forEach(x=>x.onclick=e=>{e.stopPropagation();favorite(+x.dataset.fav)});
+    }
+    $('#search').oninput=e=>{query=e.target.value.trim().toLowerCase();render()};$('#clear').onclick=()=>{saved.selected=[];persist();render()};
+    $('#copy').onclick=async()=>{const text=saved.selected.map(i=>A[i].tag).join(', ');if(!text)return toast('请先选择画风');try{await navigator.clipboard.writeText(text);toast('已复制画师串')}catch(e){prompt('复制下面的画师串',text)}};
+    render();
+  </script>
+</body>
+</html>
